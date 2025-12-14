@@ -2,11 +2,12 @@
   "name": "Fast Lessons",
   "short_name": "FastLessons",
   "description": "Быстрый планировщик домашних заданий",
-  "start_url": ".",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#f5f7fa",
-  "theme_color": "#4a6fa5",
+  "background_color": "#F8F9FA",
+  "theme_color": "#6C63FF",
   "orientation": "portrait",
+  "categories": ["education", "productivity"],
   "icons": [
     {
       "src": "icon-72.png",
