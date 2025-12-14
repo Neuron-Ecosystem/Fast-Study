@@ -1,32 +1,71 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fast Study</title>
+    <title>Fast Lessons</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#ffffff">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <meta name="theme-color" content="#4a6fa5">
+    <meta name="description" content="Быстрый планировщик домашних заданий">
 </head>
 <body>
     <div class="container">
-        <h1>Fast Study</h1>
-        <form id="task-form">
-            <input type="text" id="subject" placeholder="Предмет" required>
-            <input type="text" id="text" placeholder="Текст задания" required>
-            <input type="date" id="date" required>
-            <button type="submit">Добавить</button>
-        </form>
-        <ul id="task-list"></ul>
+        <header>
+            <h1>Fast Lessons</h1>
+            <p class="subtitle">Планировщик домашних заданий</p>
+        </header>
+
+        <main>
+            <div class="add-task-form">
+                <h2>Добавить задание</h2>
+                <div class="form-group">
+                    <input type="text" id="subject" placeholder="Предмет (математика, физика...)" maxlength="30">
+                </div>
+                <div class="form-group">
+                    <textarea id="task-text" placeholder="Текст задания" rows="2" maxlength="200"></textarea>
+                </div>
+                <div class="form-group date-group">
+                    <label class="date-option">
+                        <input type="radio" name="date" value="today" checked>
+                        <span class="custom-radio"></span>
+                        Сегодня
+                    </label>
+                    <label class="date-option">
+                        <input type="radio" name="date" value="tomorrow">
+                        <span class="custom-radio"></span>
+                        Завтра
+                    </label>
+                </div>
+                <button id="add-task" class="btn-primary">Добавить задание</button>
+            </div>
+
+            <div class="tasks-section">
+                <div class="section-header">
+                    <h2>Мои задания</h2>
+                    <div class="filter">
+                        <button class="filter-btn active" data-filter="all">Все</button>
+                        <button class="filter-btn" data-filter="today">Сегодня</button>
+                        <button class="filter-btn" data-filter="tomorrow">Завтра</button>
+                    </div>
+                </div>
+                
+                <div id="tasks-container">
+                    <!-- Задания будут загружены сюда -->
+                    <div class="empty-state" id="empty-state">
+                        <p>Нет заданий. Добавьте первое задание!</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p class="hint">Данные сохраняются автоматически. Работает без интернета.</p>
+            <p class="hint">Для установки на телефон используйте меню "Добавить на главный экран"</p>
+        </footer>
     </div>
+
     <script src="app.js"></script>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js')
-                .then(() => console.log('Service Worker registered'))
-                .catch(err => console.error('Service Worker registration failed', err));
-        }
-    </script>
 </body>
 </html>
