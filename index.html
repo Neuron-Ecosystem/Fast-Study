@@ -7,63 +7,98 @@
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
-    <meta name="theme-color" content="#4a6fa5">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="theme-color" content="#6C63FF">
     <meta name="description" content="Быстрый планировщик домашних заданий">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Fast Lessons</h1>
-            <p class="subtitle">Планировщик домашних заданий</p>
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-graduation-cap"></i>
+                    <h1>Fast Lessons</h1>
+                </div>
+                <div class="stats">
+                    <span id="stats-today">0 на сегодня</span>
+                </div>
+            </div>
+            <p class="subtitle">Планируй домашку быстро и весело!</p>
         </header>
 
         <main>
-            <div class="add-task-form">
-                <h2>Добавить задание</h2>
-                <div class="form-group">
-                    <input type="text" id="subject" placeholder="Предмет (математика, физика...)" maxlength="30">
-                </div>
-                <div class="form-group">
-                    <textarea id="task-text" placeholder="Текст задания" rows="2" maxlength="200"></textarea>
-                </div>
-                <div class="form-group date-group">
-                    <label class="date-option">
-                        <input type="radio" name="date" value="today" checked>
-                        <span class="custom-radio"></span>
-                        Сегодня
-                    </label>
-                    <label class="date-option">
-                        <input type="radio" name="date" value="tomorrow">
-                        <span class="custom-radio"></span>
-                        Завтра
-                    </label>
-                </div>
-                <button id="add-task" class="btn-primary">Добавить задание</button>
-            </div>
-
-            <div class="tasks-section">
-                <div class="section-header">
-                    <h2>Мои задания</h2>
-                    <div class="filter">
-                        <button class="filter-btn active" data-filter="all">Все</button>
-                        <button class="filter-btn" data-filter="today">Сегодня</button>
-                        <button class="filter-btn" data-filter="tomorrow">Завтра</button>
+            <div class="add-task-card">
+                <h2><i class="fas fa-plus-circle"></i> Новое задание</h2>
+                <div class="form-row">
+                    <div class="input-with-icon">
+                        <i class="fas fa-book"></i>
+                        <input type="text" id="subject" placeholder="Какой предмет?" maxlength="25">
                     </div>
                 </div>
                 
-                <div id="tasks-container">
-                    <!-- Задания будут загружены сюда -->
+                <div class="form-row">
+                    <div class="input-with-icon">
+                        <i class="fas fa-tasks"></i>
+                        <textarea id="task-text" placeholder="Что нужно сделать?" rows="2" maxlength="200"></textarea>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="date-selector">
+                        <div class="date-option active" data-date="today">
+                            <i class="fas fa-sun"></i>
+                            <span>Сегодня</span>
+                        </div>
+                        <div class="date-option" data-date="tomorrow">
+                            <i class="fas fa-moon"></i>
+                            <span>Завтра</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <button id="add-task" class="btn-primary">
+                    <i class="fas fa-paper-plane"></i> Отправить задание
+                </button>
+            </div>
+
+            <div class="tasks-container">
+                <div class="tasks-header">
+                    <h2><i class="fas fa-list-check"></i> Мои задания</h2>
+                    <div class="filter-tabs">
+                        <button class="filter-tab active" data-filter="all">Все</button>
+                        <button class="filter-tab" data-filter="today">Сегодня</button>
+                        <button class="filter-tab" data-filter="tomorrow">Завтра</button>
+                        <button class="filter-tab" data-filter="pending">Активные</button>
+                    </div>
+                </div>
+                
+                <div id="tasks-list">
                     <div class="empty-state" id="empty-state">
-                        <p>Нет заданий. Добавьте первое задание!</p>
+                        <i class="fas fa-smile-beam"></i>
+                        <p>Ура! Нет заданий. Добавьте первое!</p>
                     </div>
                 </div>
             </div>
         </main>
 
-        <footer>
-            <p class="hint">Данные сохраняются автоматически. Работает без интернета.</p>
-            <p class="hint">Для установки на телефон используйте меню "Добавить на главный экран"</p>
-        </footer>
+        <div class="pwa-prompt" id="pwa-prompt">
+            <i class="fas fa-mobile-alt"></i>
+            <p>Установите приложение для быстрого доступа!</p>
+            <button id="install-pwa">Установить</button>
+            <button id="dismiss-pwa">Позже</button>
+        </div>
+    </div>
+
+    <!-- Модальное окно удаления -->
+    <div class="modal" id="delete-modal">
+        <div class="modal-content">
+            <h3><i class="fas fa-trash-alt"></i> Удалить задание?</h3>
+            <p>Вы уверены, что хотите удалить это задание? Это действие нельзя отменить.</p>
+            <div class="modal-actions">
+                <button class="btn-secondary" id="cancel-delete">Отмена</button>
+                <button class="btn-danger" id="confirm-delete">Удалить</button>
+            </div>
+        </div>
     </div>
 
     <script src="app.js"></script>
