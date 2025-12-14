@@ -1,20 +1,12 @@
-// Fast Lessons - Service Worker
-const CACHE_NAME = 'fast-lessons-v1';
+// Fast Lessons - Service Worker с улучшенным кэшированием
+const CACHE_NAME = 'fast-lessons-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './manifest.json',
-  // Иконки для PWA (в реальном приложении должны быть добавлены)
-  // './icon-72.png',
-  // './icon-96.png',
-  // './icon-128.png',
-  // './icon-144.png',
-  // './icon-152.png',
-  // './icon-192.png',
-  // './icon-384.png',
-  // './icon-512.png'
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
 ];
 
 // Установка Service Worker и кэширование ресурсов
@@ -25,7 +17,10 @@ self.addEventListener('install', event => {
         console.log('Кэширование ресурсов приложения');
         return cache.addAll(ASSETS_TO_CACHE);
       })
-      .then(() => self.skipWaiting())
+      .then(() => {
+        console.log('Пропуск ожидания активации');
+        return self.skipWaiting();
+      })
   );
 });
 
@@ -42,35 +37,76 @@ self.addEventListener('activate', event => {
           }
         })
       );
-    }).then(() => self.clients.claim())
+    }).then(() => {
+      console.log('Активация нового Service Worker');
+      return self.clients.claim();
+    })
   );
 });
 
-// Стратегия кэширования: Сеть сначала, затем кэш
+// Стратегия кэширования: Кэш сначала, затем сеть
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        // Если ответ успешный, клонируем его и сохраняем в кэш
-        const responseClone = response.clone();
-        caches.open(CACHE_NAME)
-          .then(cache => {
-            cache.put(event.request, responseClone);
-          });
-        return response;
-      })
-      .catch(() => {
-        // Если сеть недоступна, пытаемся получить из кэша
-        return caches.match(event.request)
-          .then(cachedResponse => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            // Для навигационных запросов возвращаем index.html
-            if (event.request.mode === 'navigate') {
+  // Пропускаем не-GET запросы
+  if (event.request.method !== 'GET') return;
+  
+  // Для навигационных запросов используем стратегию "сеть сначала, затем кэш"
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          // Клонируем ответ для кэширования
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME)
+            .then(cache => {
+              cache.put(event.request, responseClone);
+            });
+          return response;
+        })
+        .catch(() => {
+          // Если сеть недоступна, пытаемся получить из кэша
+          return caches.match(event.request)
+            .then(cachedResponse => {
+              if (cachedResponse) {
+                return cachedResponse;
+              }
+              // Возвращаем запасной вариант
               return caches.match('./index.html');
-            }
-          });
-      })
-  );
+            });
+        })
+    );
+  } else {
+    // Для остальных ресурсов используем стратегию "кэш сначала, затем сеть"
+    event.respondWith(
+      caches.match(event.request)
+        .then(cachedResponse => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          
+          return fetch(event.request)
+            .then(response => {
+              // Проверяем валидность ответа
+              if (!response || response.status !== 200 || response.type !== 'basic') {
+                return response;
+              }
+              
+              // Клонируем ответ для кэширования
+              const responseClone = response.clone();
+              caches.open(CACHE_NAME)
+                .then(cache => {
+                  cache.put(event.request, responseClone);
+                });
+              
+              return response;
+            });
+        })
+    );
+  }
+});
+
+// Обработка сообщений от основного скрипта
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
