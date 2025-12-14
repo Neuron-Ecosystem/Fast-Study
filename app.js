@@ -23,7 +23,9 @@ class FastLessonsApp {
                 const parsed = JSON.parse(tasksJson);
                 this.tasks = parsed.map(task => ({
                     ...task,
-                    date: new Date(task.date)
+                    date: new Date(task.date),
+                    // Преобразуем id в число, если это строка
+                    id: typeof task.id === 'string' ? parseInt(task.id) : task.id
                 }));
             }
         } catch (e) {
@@ -34,12 +36,16 @@ class FastLessonsApp {
 
     // Сохранение задач
     saveTasks() {
-        localStorage.setItem('fastLessonsTasks', JSON.stringify(this.tasks));
+        try {
+            localStorage.setItem('fastLessonsTasks', JSON.stringify(this.tasks));
+        } catch (e) {
+            console.error('Ошибка сохранения задач:', e);
+        }
         this.updateStats();
-        this.renderTasks(); // Сразу перерисовываем
+        this.renderTasks();
     }
 
-    // Добавление задачи (работает мгновенно)
+    // Добавление задачи
     addTask(subject, text, dateOption) {
         if (!subject.trim() || !text.trim()) {
             this.showMessage('Введите предмет и задание', 'warning');
@@ -53,15 +59,14 @@ class FastLessonsApp {
         date.setHours(23, 59, 0, 0);
 
         const newTask = {
-            id: Date.now(),
+            id: Date.now() + Math.floor(Math.random() * 1000), // Уникальный ID
             subject: subject.trim(),
             text: text.trim(),
             date: date,
-            done: false,
-            createdAt: new Date()
+            done: false
         };
 
-        this.tasks.unshift(newTask); // Добавляем в начало
+        this.tasks.unshift(newTask);
         this.saveTasks();
         
         // Очистка формы
@@ -73,29 +78,26 @@ class FastLessonsApp {
         return true;
     }
 
-    // Переключение статуса задачи (работает мгновенно)
+    // Переключение статуса задачи
     toggleTaskDone(taskId) {
         const taskIndex = this.tasks.findIndex(t => t.id === taskId);
         if (taskIndex !== -1) {
             this.tasks[taskIndex].done = !this.tasks[taskIndex].done;
-            
-            // Анимация
-            const taskElement = document.querySelector(`.task[data-id="${taskId}"]`);
-            if (taskElement) {
-                taskElement.classList.add('task-updating');
-                setTimeout(() => taskElement.classList.remove('task-updating'), 500);
-            }
-            
             this.saveTasks();
         }
     }
 
-    // Удаление задачи (работает мгновенно)
+    // Удаление задачи
     deleteTask(taskId) {
-        if (confirm('Удалить это задание?')) {
+        // Используем более простое подтверждение
+        if (window.confirm('Удалить это задание?')) {
+            const initialLength = this.tasks.length;
             this.tasks = this.tasks.filter(t => t.id !== taskId);
-            this.saveTasks();
-            this.showMessage('Задание удалено', 'info');
+            
+            if (this.tasks.length < initialLength) {
+                this.saveTasks();
+                this.showMessage('Задание удалено', 'info');
+            }
         }
     }
 
@@ -131,7 +133,7 @@ class FastLessonsApp {
             case 'active':
                 return this.tasks.filter(task => !task.done);
             default:
-                return this.tasks;
+                return [...this.tasks];
         }
     }
 
@@ -144,13 +146,12 @@ class FastLessonsApp {
         tomorrow.setDate(tomorrow.getDate() + 1);
         
         if (taskDate >= today && taskDate < tomorrow) {
-            return { text: 'Сегодня', icon: '☀️', isToday: true };
+            return { text: 'Сегодня', isToday: true };
         } else if (taskDate >= tomorrow && taskDate < new Date(tomorrow.getTime() + 24*60*60*1000)) {
-            return { text: 'Завтра', icon: '🌙', isTomorrow: true };
+            return { text: 'Завтра', isTomorrow: true };
         } else {
             return { 
                 text: taskDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }), 
-                icon: '📅',
                 isToday: false,
                 isTomorrow: false
             };
@@ -173,7 +174,7 @@ class FastLessonsApp {
         document.getElementById('today-count').textContent = `${todayTasks} на сегодня`;
     }
 
-    // Отрисовка задач (мгновенная)
+    // Отрисовка задач
     renderTasks() {
         const container = document.getElementById('tasks-list');
         const filteredTasks = this.getFilteredTasks();
@@ -189,7 +190,7 @@ class FastLessonsApp {
         // Сортируем: сначала активные, потом выполненные
         const sortedTasks = [...filteredTasks].sort((a, b) => {
             if (a.done !== b.done) return a.done ? 1 : -1;
-            return new Date(b.createdAt) - new Date(a.createdAt); // Новые сверху
+            return new Date(b.date) - new Date(a.date);
         });
         
         let tasksHTML = '';
@@ -211,10 +212,10 @@ class FastLessonsApp {
                         <div class="task-text">${this.escapeHtml(task.text)}</div>
                         <div class="task-footer">
                             <div class="task-date">
-                                ${dateInfo.icon} ${dateInfo.text}
+                                ${dateInfo.text}
                             </div>
                             <div class="task-actions">
-                                <button class="action-btn delete-btn" title="Удалить задание">
+                                <button class="action-btn delete-btn" data-id="${task.id}" title="Удалить задание">
                                     🗑️
                                 </button>
                             </div>
@@ -226,19 +227,25 @@ class FastLessonsApp {
         
         container.innerHTML = tasksHTML;
         
-        // Добавляем обработчики событий для новых элементов
-        this.attachTaskEventListeners();
+        // Сразу привязываем обработчики после рендеринга
+        this.bindTaskEvents();
     }
 
     // Экранирование HTML
     escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
+        return text.replace(/[&<>"']/g, function(m) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[m];
+        });
     }
 
-    // Привязка обработчиков событий к задачам
-    attachTaskEventListeners() {
+    // Привязка обработчиков событий к задачам (ИСПРАВЛЕНО!)
+    bindTaskEvents() {
         // Обработчики для чекбоксов
         document.querySelectorAll('.task-checkbox input').forEach(checkbox => {
             checkbox.addEventListener('change', (e) => {
@@ -247,12 +254,15 @@ class FastLessonsApp {
             });
         });
 
-        // Обработчики для кнопок удаления
+        // Обработчики для кнопок удаления (ВОТ ИСПРАВЛЕНИЕ!)
         document.querySelectorAll('.delete-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
+                e.preventDefault();
                 e.stopPropagation();
-                const taskId = parseInt(e.target.closest('.task').dataset.id);
-                this.deleteTask(taskId);
+                const taskId = parseInt(btn.dataset.id); // Берем data-id из кнопки
+                if (taskId) {
+                    this.deleteTask(taskId);
+                }
             });
         });
 
@@ -274,86 +284,54 @@ class FastLessonsApp {
 
     // Показать сообщение
     showMessage(text, type) {
-        const message = document.createElement('div');
-        message.className = `message message-${type}`;
-        message.textContent = text;
-        message.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: ${type === 'success' ? '#4CAF50' : 
-                        type === 'warning' ? '#FF9800' : '#2196F3'};
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-            z-index: 1000;
-            animation: slideIn 0.3s ease, fadeOut 0.3s ease 2.7s forwards;
-        `;
-        
-        document.body.appendChild(message);
-        
-        setTimeout(() => {
-            if (message.parentNode) {
-                message.parentNode.removeChild(message);
-            }
-        }, 3000);
-        
-        // Добавляем CSS для анимации
-        if (!document.querySelector('#message-styles')) {
-            const style = document.createElement('style');
-            style.id = 'message-styles';
-            style.textContent = `
-                @keyframes slideIn {
-                    from { transform: translateX(100%); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-                @keyframes fadeOut {
-                    from { opacity: 1; }
-                    to { opacity: 0; }
-                }
-            `;
-            document.head.appendChild(style);
-        }
+        // Создаем простое уведомление
+        alert(text); // Используем простой alert для надежности
     }
 
     // Настройка обработчиков событий
     setupEventListeners() {
         // Кнопка добавления
-        document.getElementById('add-btn').addEventListener('click', () => {
-            const subject = document.getElementById('subject').value;
-            const text = document.getElementById('task-text').value;
-            const dateOption = document.querySelector('.date-btn.active').dataset.date;
-            this.addTask(subject, text, dateOption);
-        });
+        const addBtn = document.getElementById('add-btn');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => {
+                const subject = document.getElementById('subject').value;
+                const text = document.getElementById('task-text').value;
+                const activeDateBtn = document.querySelector('.date-btn.active');
+                const dateOption = activeDateBtn ? activeDateBtn.dataset.date : 'today';
+                this.addTask(subject, text, dateOption);
+            });
+        }
 
         // Выбор даты
         document.querySelectorAll('.date-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', (e) => {
                 document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
+                e.target.classList.add('active');
             });
         });
 
         // Фильтры
         document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                this.filterTasks(btn.dataset.filter);
+            btn.addEventListener('click', (e) => {
+                this.filterTasks(e.target.dataset.filter);
             });
         });
 
         // Добавление по Enter
         document.getElementById('subject').addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
+                e.preventDefault();
                 document.getElementById('task-text').focus();
             }
         });
 
         document.getElementById('task-text').addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
                 const subject = document.getElementById('subject').value;
                 const text = document.getElementById('task-text').value;
-                const dateOption = document.querySelector('.date-btn.active').dataset.date;
+                const activeDateBtn = document.querySelector('.date-btn.active');
+                const dateOption = activeDateBtn ? activeDateBtn.dataset.date : 'today';
                 this.addTask(subject, text, dateOption);
             }
         });
