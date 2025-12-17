@@ -1,6 +1,6 @@
 {
   "name": "Fast Lessons",
-  "short_name": "FastLessons",
+  "short_name": "Fast Lessons",
   "description": "Быстрый планировщик домашних заданий",
   "start_url": "./index.html",
   "display": "standalone",
